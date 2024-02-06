@@ -23,14 +23,16 @@ io.on('connection', async (socket) => {
         console.log(`Room ${userName} joined by socket Id : ${socket.id}`)
         const allUsers = await user.find();
         socket.emit('allusers', allUsers)
-
-        const doc = await user.findOneAndUpdate({ userName }, { socketId: socket.id }, {
-            returnOriginal: false
-        });
-        socket.broadcast.emit('status', 1, doc.userName)
-        // console.log("doc", doc)
-
-        
+        try {
+            const doc = await user.findOneAndUpdate({ userName }, { socketId: socket.id }, {
+                returnOriginal: false
+            });
+            if (doc?.userName) {
+                socket.broadcast.emit('status', 1, doc?.userName)
+            }
+        } catch (err) {
+            console.log(err)
+        }
     })
 
 
