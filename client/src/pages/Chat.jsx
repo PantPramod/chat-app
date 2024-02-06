@@ -13,8 +13,8 @@ const Chat = () => {
   const [message, setMessage] = useState("");
   const [allMessage, setAllMessage] = useState([]);
   const [rooms, setRooms] = useState([]);
-
-  const sendHandler = (e) => {
+ 
+ const sendHandler = (e) => {
     e.preventDefault();
     if (!sendTo || !message) return;
     allMessage.push({
@@ -30,7 +30,7 @@ const Chat = () => {
 
     setAllMessage([...allMessage]);
     socket.emit("sendmessage", message, sendTo, userName);
-    setMessage('')
+    setMessage("");
   };
 
   useEffect(() => {
@@ -41,6 +41,9 @@ const Chat = () => {
       socket.emit("joinroom", [username]);
     });
 
+    socket.on("allusers", (arg) => {
+      setAllUsers([...arg]);
+    });
     socket.on("recover", (m) => {
       setAllMessage([...m]);
       setTimeout(() => {
@@ -64,23 +67,21 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await axios.get(`${baseUrl}/allusers`);
-        const userName = sessionStorage.getItem("userName");
-        let index = -1;
-       data.forEach((element, idx) => {
-          if (element?.userName === userName) {
-            index = idx;
+    if (allUsers.length > 0) {
+      console.log(allUsers);
+      socket.on("status", (status, u) => {
+        console.log(status, u);
+
+        allUsers.forEach((user) => {
+          if (user.userName === u) {
+            user.status = !!status;
           }
         });
 
-        data.splice(index, 1);
-        setAllUsers([...data]);
-      } catch (err) {
-      }
-    })();
-  }, []);
+        setAllUsers([...allUsers])
+      });
+    }
+  }, [allUsers]);
 
   const joinRoomHandler = (val) => {
     setSendTo(val);
@@ -116,15 +117,22 @@ const Chat = () => {
           </div>
           <ul>
             {allUsers.map((user, index) => (
-              <li
-                key={user._id}
-                onClick={() => joinRoomHandler(user.userName)}
-                style={
-                  sendTo === user.userName ? { background: "#d1cece" } : {}
-                }
-                className="py-2 px-4 text-gray-800 cursor-pointer hover:bg-[#d1cece]"
-              >
-                {user.userName}
+              <li key={user._id}>
+                {user.userName === userName ? null : (
+                  <p
+                    onClick={() => joinRoomHandler(user.userName)}
+                    style={
+                      sendTo === user.userName ? { background: "#d1cece" } : {}
+                    }
+                    className="py-2 px-4 text-gray-800 cursor-pointer hover:bg-[#d1cece]"
+                  >
+                    {user?.status && (
+                      <span className="w-2 h-2 inline-block rounded-full bg-green-600"></span>
+                    )}
+
+                    {user.userName}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
