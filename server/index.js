@@ -21,14 +21,15 @@ io.on('connection', async (socket) => {
     socket.on('joinroom', async (userName) => {
         socket.join(userName)
         console.log(`Room ${userName} joined by socket Id : ${socket.id}`)
-        const allUsers = await user.find();
-        socket.emit('allusers', allUsers)
+        
         try {
-            const doc = await user.findOneAndUpdate({ userName }, { socketId: socket.id }, {
+            const doc = await user.findOneAndUpdate({ userName }, { socketId: socket.id, status:true }, {
                 returnOriginal: false
             });
             if (doc?.userName) {
                 socket.broadcast.emit('status', 1, doc?.userName)
+                const allUsers = await user.find();
+                socket.emit('allusers', allUsers)
             }
         } catch (err) {
             console.log(err)
@@ -39,7 +40,7 @@ io.on('connection', async (socket) => {
     socket.on('sendmessage', async (message, sendTo, from) => {
         try {
             await msg.create({ sender: from, receiver: sendTo, message })
-            socket.to(sendTo).emit('sendmessage1', message, from);
+            socket.to(sendTo).emit('sendmessage1', message, from,sendTo);
         } catch (err) {
             console.log(err)
         }
@@ -48,11 +49,10 @@ io.on('connection', async (socket) => {
 
     socket.on('recover', async (userName, sendTo) => {
         try {
-            const options = [userName, sendTo]
             const messages = await msg.find({
                 $or: [
-                    { sender: { $in: options }, receiver: { $in: options } },
-                    { sender: { $in: options }, receiver: { $in: options } }
+                    { sender: userName, receiver: sendTo },
+                    { sender: sendTo, receiver: userName },
                 ]
             })
 
@@ -67,8 +67,12 @@ io.on('connection', async (socket) => {
         console.log("Disconnected from the server")
         try {
             const userDetails = await user.findOne({ socketId: socket?.id })
-            if (userDetails?.userName) {
+            if(userDetails?.userName) {
                 socket.broadcast.emit('status', 0, userDetails?.userName)
+
+                 await user.findOneAndUpdate({ userName:userDetails?.userName }, { status: false }, {
+                    returnOriginal: false
+                });
             }
         } catch (err) {
             console.log(err)

@@ -1,8 +1,8 @@
-import axios from "axios";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { baseUrl } from "../config";
+import music from ".//music.mp3";
 
 const Chat = () => {
   const socket = useMemo(() => io(`${baseUrl}`), []);
@@ -13,8 +13,8 @@ const Chat = () => {
   const [message, setMessage] = useState("");
   const [allMessage, setAllMessage] = useState([]);
   const [rooms, setRooms] = useState([]);
- 
- const sendHandler = (e) => {
+
+  const sendHandler = (e) => {
     e.preventDefault();
     if (!sendTo || !message) return;
     allMessage.push({
@@ -53,13 +53,6 @@ const Chat = () => {
         );
       }, 3000);
     });
-    socket.on("sendmessage1", (m, from) => {
-      setAllMessage((prev) => [...prev, { from, message: m }]);
-      window.scrollTo(
-        0,
-        document.body.scrollHeight || document.documentElement.scrollHeight
-      );
-    });
 
     return () => {
       socket.disconnect();
@@ -67,23 +60,58 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    if (allUsers.length > 0) {
-      console.log(allUsers);
-      socket.on("status", (status, u) => {
-        console.log(status, u);
+    const callback = (m, sender, receiver) => {
+      console.log(
+        "sender",
+        sender,
+        "receiver=====>",
+        receiver,
+        "sendTo",
+        sendTo,
+        "message",
+        m
+      );
+      console.log(sender === sendTo);
+      if (sender === sendTo) {
+        setAllMessage((prev) => [
+          ...prev,
+          { sender, message: m, receiver, _id: Math.random() },
+        ]);
+        let audio = new Audio(music);
+        audio.play();
+        window.scrollTo(
+          0,
+          document.body.scrollHeight || document.documentElement.scrollHeight
+        );
+      }
+    };
+    socket.on("sendmessage1", callback);
 
-        allUsers.forEach((user) => {
-          if (user.userName === u) {
-            user.status = !!status;
-          }
-        });
-
-        setAllUsers([...allUsers])
+    return () => {
+      socket.off("sendmessage1", callback);
+    };
+  }, [sendTo]);
+  useEffect(() => {
+    let callback = (status, u) => {
+      console.log(status, u);
+      allUsers.forEach((user) => {
+        if (user.userName === u) {
+          user.status = !!status;
+        }
       });
+      setAllUsers([...allUsers]);
+    };
+    if (allUsers.length > 0) {
+      socket.on("status", callback);
     }
+
+    return () => {
+      socket.off("status", callback);
+    };
   }, [allUsers]);
 
   const joinRoomHandler = (val) => {
+    console.log(val);
     setSendTo(val);
     socket.emit("joinroom", [...rooms, val]);
     setRooms([...rooms, val]);

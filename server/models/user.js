@@ -4,7 +4,8 @@ import mongoose from "mongoose"
 const userSchema = new mongoose.Schema({
 
     userName: String,
-    socketId: String
+    socketId: String,
+    status: Boolean
 })
 
 
