@@ -13,7 +13,8 @@ const Chat = () => {
   const [message, setMessage] = useState("");
   const [allMessage, setAllMessage] = useState([]);
   const [rooms, setRooms] = useState([]);
-
+  const [showMessages, setShowMessages] = useState(false);
+  const chatRef = useRef()
   const sendHandler = (e) => {
     e.preventDefault();
     if (!sendTo || !message) return;
@@ -23,10 +24,13 @@ const Chat = () => {
       receiver: sendTo,
       message,
     });
-    window.scrollTo(
-      0,
-      document.body.scrollHeight || document.documentElement.scrollHeight
-    );
+    setTimeout(()=>{
+      chatRef.current.scrollTo(
+        0,
+        chatRef.current.scrollHeight || chatRef.current.documentElement.scrollHeight
+      );
+    },1000)
+    
 
     setAllMessage([...allMessage]);
     socket.emit("sendmessage", message, sendTo, userName);
@@ -47,9 +51,9 @@ const Chat = () => {
     socket.on("recover", (m) => {
       setAllMessage([...m]);
       setTimeout(() => {
-        window.scrollTo(
+        chatRef.current.scrollTo(
           0,
-          document.body.scrollHeight || document.documentElement.scrollHeight
+          chatRef.current.scrollHeight || chatRef.current.documentElement.scrollHeight
         );
       }, 3000);
     });
@@ -64,7 +68,7 @@ const Chat = () => {
       console.log(
         "sender",
         sender,
-        "receiver=====>",
+        "receiver",
         receiver,
         "sendTo",
         sendTo,
@@ -79,9 +83,9 @@ const Chat = () => {
         ]);
         let audio = new Audio(music);
         audio.play();
-        window.scrollTo(
+        chatRef.current.scrollTo(
           0,
-          document.body.scrollHeight || document.documentElement.scrollHeight
+          chatRef.current.scrollHeight || chatRef.current.documentElement.scrollHeight
         );
       }
     };
@@ -125,10 +129,12 @@ const Chat = () => {
     })();
   }, [userName, sendTo]);
 
+
+
   return (
-    <div className="bg-[#F0F2F5]">
-      <div className="flex">
-        <div className="  w-[400px] border-r border-r-gray-300 min-h-screen fixed left-0 top-0 bottom-0">
+    <div className="bg-[#F0F2F5] ">
+      <div className="flex flex-col sm:flex-row min-h-screen">
+        <div className=" w-full  sm:w-[50vw] md:w-[400px] sm:max-w-[400px] border-r border-r-gray-300   ">
           <div className="px-4 py-3 flex justify-between items-center">
             {/* profile picture  */}
             <div className="flex gap-x-4 items-center">
@@ -143,7 +149,7 @@ const Chat = () => {
             {/* menu  */}
             <BsThreeDotsVertical />
           </div>
-          <ul>
+          <ul className="overflow-y-auto h-[calc(100vh-64px)]">
             {allUsers.map((user, index) => (
               <li key={user._id}>
                 {user.userName === userName ? null : (
@@ -165,12 +171,15 @@ const Chat = () => {
             ))}
           </ul>
         </div>
+
         {sendTo ? (
-          <div className=" w-full bg-[#F4F1EB] min-h-screen ml-[400px]">
+          <div 
+          ref={chatRef}
+          className="   w-full bg-[#F4F1EB]  overflow-y-auto h-[calc(100vh-82px)] scroll-smooth pb-4">
             <p className="block text-center py-3 text-2xl font-semibold">
               To : {sendTo}
             </p>
-            <ul className="min-h-[80vh] pb-[150px] flex flex-col ">
+            <ul className=" flex flex-col ">
               {allMessage.map((msg, index) => (
                 <li
                   key={index}
@@ -185,13 +194,13 @@ const Chat = () => {
               ))}
             </ul>
             <form
-              className="fixed bottom-0 left-[400px] px-10 right-[0px] flex py-3 bg-[#F0F2F5] items-center justify-center"
+              className="fixed shadow-md rounded-md right-0 left-0 sm:left-[50vw] md:left-[400px]    bottom-0      bg-white  flex py-5 px-10  items-center justify-center"
               onSubmit={sendHandler}
             >
               <input
                 type="text"
                 placeholder="Enter your Message"
-                className="border border-gray-400 w-full rounded-l-md p-2 outline-none max-w-[600px] "
+                className="border border-gray-400 w-full rounded-l-md p-2 outline-none "
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
@@ -201,7 +210,7 @@ const Chat = () => {
             </form>
           </div>
         ) : (
-          <div className="w-full flex items-center justify-center ml-[400px] bg-green-200 overflow-hidden h-screen z-[1]">
+          <div className=" w-full flex   items-center justify-center  bg-green-100 h-screen z-[1]">
             <h2 className="font-semibold text-2xl">Welcome to messaging App</h2>
           </div>
         )}
